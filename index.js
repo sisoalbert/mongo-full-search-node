@@ -32,6 +32,9 @@ app.get("/search", async (req, res) => {
           text: {
             query: searchQuery,
             path: { wildcard: "*" },
+            fuzzy: {
+              maxEdits: 2,
+            },
           },
         },
       },
