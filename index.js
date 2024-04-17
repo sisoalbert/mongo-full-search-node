@@ -55,6 +55,48 @@ app.get("/search", async (req, res) => {
   }
 });
 
+// products autocomplete
+app.get("/autocomplete", async (req, res) => {
+  try {
+    await client.connect();
+    const database = client.db("Buyly");
+    const collection = database.collection("StoreProducts");
+
+    const searchQuery = req.query.q; // Get search query from query parameter
+
+    // Define the aggregation pipeline with search
+    const agg = [
+      {
+        $search: {
+          index: "storeProductsAutocomplete",
+          autocomplete: {
+            query: searchQuery,
+            path: "name",
+            fuzzy: {
+              maxEdits: 1,
+            },
+          },
+        },
+      },
+      { $limit: 10 },
+      { $project: { _id: 0, name: 1 } },
+    ];
+
+    const cursor = collection.aggregate(agg);
+    const result = await cursor.toArray();
+
+    res.status(200).json({
+      products: result,
+      message: "Products found successfully",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  } finally {
+    await client.close();
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
